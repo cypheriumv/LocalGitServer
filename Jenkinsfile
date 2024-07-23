@@ -47,6 +47,7 @@ pipeline {
     post {
         always {
             // Clean up or send notifications if needed
+            recordIssues enabledForFailure: true, tool: sonarQube()
         }
     }
 }
