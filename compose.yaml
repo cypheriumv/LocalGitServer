@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  git-server:
+    build:
+      dockerfile: gitserver.Dockerfile
+      context: .
+    restart: always
+    ports:
+      - "22:22"
+    volumes:
+      - ./LocalGitServer:/home/git/LocalGitServer
+      - ./keys:/git-svr/keys
+
+  webapp:
+    build: ./webapp
+    restart: always
+    ports:
+      - "8081:80"
