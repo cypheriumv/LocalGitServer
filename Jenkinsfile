@@ -1,57 +1,75 @@
 pipeline {
     agent any
-
+    
     stages {
         stage('Checkout') {
             steps {
-                // Check out the code from GitHub
-                checkout scm
+                // Checkout code from the repository
+                git branch: 'master', url: 'https://github.com/your-repo/your-app.git'
             }
         }
-
-        stage('Dependency Check') {
+        
+        stage('OWASP DependencyCheck') {
             steps {
-                // Use Jenkins' built-in dependency check
-                dependencyCheckAnalyzer {
-                    // Optional: specify additional options here if needed
+                // Run OWASP DependencyCheck to identify vulnerabilities
+                dependencyCheck additionalArguments: '--format HTML --format XML', odcInstallation: 'OWASP Dependency-Check Vulnerabilities'
+            }
+        }
+        
+        stage('Build and Deploy') {
+            parallel {
+                stage('Build') {
+                    agent {
+                        docker {
+                            image 'maven:3-alpine' // or your preferred build environment
+                            args '-v /root/.m2:/root/.m2'
+                        }
+                    }
+                    steps {
+                        // Build the application (adjust command as necessary)
+                        sh 'mvn -B -DskipTests clean package'
+                    }
+                }
+                stage('Deploy') {
+                    agent any
+                    steps {
+                        // Deploy the application
+                        sh './jenkins/scripts/deploy.sh'
+                        input message: 'Finished using the website? (Click "Proceed" to continue)'
+                        sh './jenkins/scripts/kill.sh'
+                    }
                 }
             }
         }
-
-        stage('Build') {
-            steps {
-                // Build your application (e.g., with Maven)
-                sh 'mvn clean install'  // Adjust this to your build tool and command
-            }
-        }
-
-        stage('Integration Testing') {
-            steps {
-                // Run integration tests
-                sh 'mvn verify -Dskip.unit.tests=true'  // Adjust this to your integration testing command
-            }
-        }
-
+        
         stage('UI Testing') {
+            agent {
+                docker {
+                    image 'maven:3-alpine' // Use an image with necessary testing tools
+                    args '-v /root/.m2:/root/.m2'
+                }
+            }
             steps {
-                // Run UI tests (e.g., using Selenium)
-                sh 'mvn verify -Dskip.integration.tests=true'  // Adjust this to your UI testing command
+                // Run UI tests over HTTP (adjust commands based on your test framework)
+                sh 'mvn -B -DskipTests clean package'
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    // Publish test results (adjust path if needed)
+                    junit 'target/surefire-reports/*.xml'
+                }
             }
         }
     }
-
+    
     post {
-        always {
-            // Actions to take always, e.g., cleanup
-            echo 'Pipeline completed.'
-        }
         success {
-            // Actions to take on success, e.g., notifications
-            echo 'Build and tests passed successfully!'
+            // Publish dependency check report
+            dependencyCheckPublisher pattern: 'dependency-check-report.xml'
         }
-        failure {
-            // Actions to take on failure, e.g., notifications
-            echo 'Build or tests failed.'
+        always {
+            // Archive artifacts or perform other actions
         }
     }
 }
