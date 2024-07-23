@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        // Define any environment variables here if needed
-        // e.g., MAVEN_HOME='/usr/local/maven'
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -53,8 +48,9 @@ pipeline {
     post {
         always {
             // Record issues, notifications, or perform cleanup
+            echo 'Pipeline completed.'
             // For example, record issues using SonarQube
-            recordIssues enabledForFailure: true, tool: sonarQube()
+            // recordIssues enabledForFailure: true, tool: sonarQube()
         }
         success {
             // Actions to take on success, e.g., notifications
