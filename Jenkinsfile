@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    tools {
+        // Define the JDK version to use (adjust if needed)
+        jdk 'JDK11'  // Ensure this JDK version is installed and configured in Jenkins
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -11,9 +16,9 @@ pipeline {
 
         stage('Dependency Check') {
             steps {
-                script {
-                    // Run dependency checks (e.g., using a tool like OWASP Dependency-Check)
-                    sh 'dependency-check.sh'  // Adjust this to your dependency check command
+                // Use Jenkins' built-in dependency check
+                dependencyCheckAnalyzer {
+                    // Optional: specify additional options here if needed
                 }
             }
         }
@@ -27,30 +32,23 @@ pipeline {
 
         stage('Integration Testing') {
             steps {
-                script {
-                    // Run integration tests
-                    sh 'mvn verify -Dskip.unit.tests=true'  // Adjust this to your integration testing command
-                }
+                // Run integration tests
+                sh 'mvn verify -Dskip.unit.tests=true'  // Adjust this to your integration testing command
             }
         }
 
         stage('UI Testing') {
             steps {
-                script {
-                    // Run UI tests (e.g., using Selenium)
-                    // Replace with your actual UI testing command
-                    sh 'mvn verify -Dskip.integration.tests=true'  
-                }
+                // Run UI tests (e.g., using Selenium)
+                sh 'mvn verify -Dskip.integration.tests=true'  // Adjust this to your UI testing command
             }
         }
     }
 
     post {
         always {
-            // Record issues, notifications, or perform cleanup
+            // Actions to take always, e.g., cleanup
             echo 'Pipeline completed.'
-            // For example, record issues using SonarQube
-            // recordIssues enabledForFailure: true, tool: sonarQube()
         }
         success {
             // Actions to take on success, e.g., notifications
